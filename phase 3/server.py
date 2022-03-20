@@ -34,7 +34,8 @@ while True:
     print("Packet " + str(i + 1) + ": " + str(packet))
 
     temp = False
-    checksum_calc = "0" #CHANGE THIS. THIS SHOULD BE THE CHECKSUM CALCULATION ON THE SERVER SIDE
+    checksum_calc = file_extract.chksum(packet)
+    checksum_calc = str(checksum_calc)
     if checksum.decode() != checksum_calc: #Are the checksums calculated on the client side and server side equal? If not, change ID
         temp = True
         if id == "0":

@@ -37,11 +37,12 @@ def go():
             packet_for_tx = file_extract.client_packet_split(packet_size_bytes, BMP_fname + '.bmp', i) #parse file into packets
 
             if j % 5 == 0: #Corrupt every 5 packets
-                checksum = "1" #CHANGE THIS. IMPLEMENT REAL CHECKSUM
+                checksum = file_extract.chksum(packet_for_tx)
                 packet_for_tx = file_extract.client_packet_corruptor(packet_for_tx)
             else:
-                checksum = "0" #CHANGE THIS. IMPLEMENT REAL CHECKSUM
+                checksum = file_extract.chksum(packet_for_tx)
 
+            checksum=str(checksum)
             clientSocket.sendto(checksum.encode(), (serverName, serverPort)) #send checksum
 
             clientSocket.sendto(packet_for_tx, (serverName, serverPort)) #send packet

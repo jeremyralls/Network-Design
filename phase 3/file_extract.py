@@ -70,3 +70,17 @@ def server_packet_merge_file_write(rxdata, fname, i, packet_size_bytes):
         return 0
     else:
         return 1
+
+def wraparound(sum,word):
+    newsum = sum + word
+    fixedsum = (newsum & 0xffff) + (newsum >> 16)
+
+    return fixedsum
+
+def chksum(data):
+    sum = 0
+    for i in range(0,len(data),2):
+        word = data[i] + (data[i+1] << 8)
+        sum = wraparound(sum,word)
+
+    return ~sum & 0xffff
