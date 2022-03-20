@@ -1,5 +1,8 @@
 import math
+import struct
 # define packet concat array for server
+import sys
+
 raw_file_data = bytearray()
 
 # returns the number of packets that need to be sent given a user
@@ -9,6 +12,7 @@ def number_of_packets(fname, packet_size_bytes):
         data = bytearray(bmp.read())
         bmp.close()
         size_of_file = int.from_bytes(data[2:6], "little")
+        print("Size of file: " + str(size_of_file))
 
         if size_of_file % packet_size_bytes != 0:
             num_of_packets = math.floor(size_of_file/packet_size_bytes) + 1
@@ -27,7 +31,23 @@ def client_packet_split(packet_size_bytes, fname, i):
         bmp.close()
         packet_buf = data[(packet_size_bytes * i):(packet_size_bytes * (i + 1)) ]
 
+        print("Good: " + str(packet_buf))
+
         return packet_buf
+
+#takes a packet from the client_packet_split function and switches the first bit of each byte
+def client_packet_corruptor(packet_buf):
+    for i in packet_buf:
+        if bin(packet_buf[i])[len(bin(packet_buf[i])) - 1] == '0':
+            packet_buf[i] = packet_buf[i] + 1
+        else:
+            packet_buf[i] = packet_buf[i] - 1
+
+
+    print("Corrupt: " + str(packet_buf))
+
+    return packet_buf
+
 
 # This function will merge the recived packets together and write the bmp file
 # for the UDP reciver.  This function will return 1 when the full file

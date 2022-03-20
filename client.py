@@ -7,11 +7,9 @@ from tkinter.ttk import Progressbar
 def go():
 
     BMP_fname = file.get()              #get file name from user input
-    packet_size_string = pack.get()     #get size of packets from user
-    packet_size_bytes = int(packet_size_string)     #change string input to type integer for later
+    packet_size_bytes = 1024            #fixed packet size
 
-    loop_cond = file_extract.number_of_packets((BMP_fname + '.bmp'),
-                                               packet_size_bytes)  # determine loop conditions before sending packets
+    loop_cond = file_extract.number_of_packets((BMP_fname + '.bmp'), packet_size_bytes)  # determine loop conditions before sending packets
 
     clientSocket.sendto(BMP_fname.encode(), (serverName, serverPort))  # send file name to server
 
@@ -27,11 +25,46 @@ def go():
     )
     down.place(x=65, y=220)         #putting it to GUI
 
-    i = 0
+    id = "0" #sequence ID starts at 0
+
+    i = 0 #iterator for what packet to send
+    j = 0 #iterator for determining which packets will be corrupted
     while i < loop_cond:
-        packet_for_tx = file_extract.client_packet_split(packet_size_bytes, 'takis.bmp', i) #parse file into packets
-        clientSocket.sendto(packet_for_tx, (serverName, serverPort)) #send packets
+        flag = True
+        while flag:
+            clientSocket.sendto(id.encode(), (serverName, serverPort)) #send sequence ID
+
+            packet_for_tx = file_extract.client_packet_split(packet_size_bytes, BMP_fname + '.bmp', i) #parse file into packets
+
+            if j % 5 == 0: #Corrupt every 5 packets
+                checksum = "1" #CHANGE THIS. IMPLEMENT REAL CHECKSUM
+                packet_for_tx = file_extract.client_packet_corruptor(packet_for_tx)
+            else:
+                checksum = "0" #CHANGE THIS. IMPLEMENT REAL CHECKSUM
+
+            clientSocket.sendto(checksum.encode(), (serverName, serverPort)) #send checksum
+
+            clientSocket.sendto(packet_for_tx, (serverName, serverPort)) #send packet
+
+            response, serverAddress = clientSocket.recvfrom(2048) #receive ACK from server
+            response = response.decode()
+            print("Response: " + response)
+
+            if response[0] == id and response[1:4] == "111": #if neither of the two scenarios below occur, exit the loop. We don't need to send the packet again
+                flag = False
+            elif response[1:4] == "101": #if the ACK is corrupted, send the packet again
+                print("Sending again because of corrupted ACK")
+            else: #if the packet was corrupted, send the packet again
+                print("Sending again because of corrupted packet")
+            j += 1
+
+        if id == "0": #Toggle the sequence number for every packet
+            id = "1"
+        else:
+            id = "0"
+
         i += 1
+
         gui.update_idletasks()              #update % in GUI
         pb['value'] += 100 / loop_cond
         txt['text'] = pb['value'], '%'
@@ -59,18 +92,6 @@ name.place(x=50, y=15)      #placing it on the GUI
 
 file = Entry(gui)           #text box for file name
 file.place(x=30, y=40)      #placing on GUI
-
-p_size = Label(             #label for user desired packet size
-    gui,
-    text = 'Input packet size',
-    bg = '#345',
-    fg = "white"
-)
-
-p_size.place(x=45, y=65)        #placing on GUI
-
-pack = Entry(gui)           #box for user input packet size
-pack.place(x=30, y=90)      #place on GUI
 
 pb = Progressbar(           #making progress bar
     gui,
