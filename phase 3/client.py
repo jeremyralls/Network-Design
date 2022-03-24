@@ -2,12 +2,16 @@ from socket import * #import python socket library
 import file_extract
 from tkinter import *
 from tkinter.ttk import Progressbar
+import random
+import time
+
+start_time = time.time()
 
 #send all packets to server
 def go():
-
     BMP_fname = file.get()              #get file name from user input
     packet_size_bytes = 1024            #fixed packet size
+    percent_corruption = 30              #percent of packets that will be corrupted
 
     loop_cond = file_extract.number_of_packets((BMP_fname + '.bmp'), packet_size_bytes)  # determine loop conditions before sending packets
 
@@ -28,7 +32,6 @@ def go():
     id = "0" #sequence ID starts at 0
 
     i = 0 #iterator for what packet to send
-    j = 0 #iterator for determining which packets will be corrupted
     while i < loop_cond:
         flag = True
         while flag:
@@ -36,7 +39,7 @@ def go():
 
             packet_for_tx = file_extract.client_packet_split(packet_size_bytes, BMP_fname + '.bmp', i) #parse file into packets
 
-            if j % 5 == 0: #Corrupt every 5 packets
+            if random.randint(0, 100) < percent_corruption: #Corrupt random number of the packets
                 checksum = file_extract.chksum(packet_for_tx)
                 packet_for_tx = file_extract.client_packet_corruptor(packet_for_tx)
             else:
@@ -49,15 +52,14 @@ def go():
 
             response, serverAddress = clientSocket.recvfrom(2048) #receive ACK from server
             response = response.decode()
-            print("Response: " + response)
+            #print("Response: " + response)
 
             if response[0] == id and response[1:4] == "111": #if neither of the two scenarios below occur, exit the loop. We don't need to send the packet again
                 flag = False
-            elif response[1:4] == "101": #if the ACK is corrupted, send the packet again
-                print("Sending again because of corrupted ACK")
-            else: #if the packet was corrupted, send the packet again
-                print("Sending again because of corrupted packet")
-            j += 1
+            #elif response[1:4] == "101": #if the ACK is corrupted, send the packet again
+                #print("Sending again because of corrupted ACK")
+            #else: #if the packet was corrupted, send the packet again
+                #print("Sending again because of corrupted packet")
 
         if id == "0": #Toggle the sequence number for every packet
             id = "1"
@@ -69,6 +71,8 @@ def go():
         gui.update_idletasks()              #update % in GUI
         pb['value'] += 100 / loop_cond
         txt['text'] = pb['value'], '%'
+
+    print("--- %s seconds ---" % (time.time() - start_time))
 
     down.config(text="Sent")            #changing text from "uploading" to "done"
     txt.config(text= "100%")            #fixes 99.9999% bug instead of 100%
@@ -129,5 +133,4 @@ clientSocket = socket(AF_INET, SOCK_DGRAM) #creates client socket
 
 
 gui.mainloop()
-
 clientSocket.close() #closes port
