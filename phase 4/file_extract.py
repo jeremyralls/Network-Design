@@ -1,5 +1,6 @@
 import math
 import struct
+import time
 # define packet concat array for server
 import sys
 
@@ -12,7 +13,7 @@ def number_of_packets(fname, packet_size_bytes):
         data = bytearray(bmp.read())
         bmp.close()
         size_of_file = int.from_bytes(data[2:6], "little")
-        print("Size of file: " + str(size_of_file))
+        #print("Size of file: " + str(size_of_file))
 
         if size_of_file % packet_size_bytes != 0:
             num_of_packets = math.floor(size_of_file/packet_size_bytes) + 1
