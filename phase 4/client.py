@@ -1,4 +1,4 @@
-from socket import * #import python socket library
+from socket import *
 import file_extract
 from tkinter import *
 from tkinter.ttk import Progressbar
@@ -6,19 +6,20 @@ import random
 import time
 import threading
 
-start_time = time.time()
+start_time = time.time() # Start timer for timing chart
 
+#Function for receiving ACK from the server so that we can receive it through a thread
 def receive(clientSocket):
     global response
     response, serverAddress = clientSocket.recvfrom(2048) #receive ACK from server
-    print(response.decode())
-    print("Thread started")
 
 #send all packets to server
 def go():
     BMP_fname = file.get()              #get file name from user input
     packet_size_bytes = 1024            #fixed packet size
-    percent_corruption = 25              #percent of packets that will be corrupted
+    percent_corruption = 25             #percent of packets that will be corrupted
+    percent_drop = 10                   #percent of packets that will be dropped
+    timeout = 0.05                      #timeout in seconds
 
     loop_cond = file_extract.number_of_packets((BMP_fname + '.bmp'), packet_size_bytes)  # determine loop conditions before sending packets
 
@@ -42,39 +43,50 @@ def go():
     while i < loop_cond:
         flag = True
         while flag:
-            clientSocket.sendto(id.encode(), (serverName, serverPort)) #send sequence ID
+            if random.randint(0, 100) < percent_drop: #if the random number is below the threshold, drop the packet
+                drop_packet = True
+            else:
+                drop_packet = False
+
+            if not drop_packet:
+                clientSocket.sendto(id.encode(), (serverName, serverPort)) #send sequence ID
 
             packet_for_tx = file_extract.client_packet_split(packet_size_bytes, BMP_fname + '.bmp', i) #parse file into packets
 
-            if random.randint(0, 100) < percent_corruption: #Corrupt random number of the packets
+            if random.randint(0, 100) < percent_corruption: #Corrupt random number of packets
                 checksum = file_extract.chksum(packet_for_tx)
                 packet_for_tx = file_extract.client_packet_corruptor(packet_for_tx)
             else:
                 checksum = file_extract.chksum(packet_for_tx)
 
-            checksum=str(checksum)
-            clientSocket.sendto(checksum.encode(), (serverName, serverPort)) #send checksum
+            checksum = str(checksum)
 
-            clientSocket.sendto(packet_for_tx, (serverName, serverPort)) #send packet
+            if not drop_packet:
+                clientSocket.sendto(checksum.encode(), (serverName, serverPort)) #send checksum
+
+            if not drop_packet:
+                clientSocket.sendto(packet_for_tx, (serverName, serverPort)) #send packet
 
             global response
-            response = "hi".encode()
+            response = "timeout".encode() #default for if we don't receive a response from the server before the timeout
 
-            r1 = threading.Thread(target=receive, args=(clientSocket,))
-            r1.start()
+            r1 = threading.Thread(target=receive, args=(clientSocket,)) #create receive function in a thread
+            r1.start() #start thread
 
-            t1 = time.time()
+            timeout_flag = True #flag for if we timeout
+
+            t1 = time.time() #start timer
             flag1 = True
-            while flag1:
-                if 0.05 < (time.time() - t1):
+            while flag1: #loop while we haven't timed out or received a response
+                if timeout < (time.time() - t1): #if we timeout, exit the loop and set the timeout flag to true
                     flag1 = False
+                    timeout_flag = True
                     print("Timeout")
-                    print(response)
-                if response != "hi".encode():
+                if response != "timeout".encode(): #if we receive a response, exit the loop and set the timeout flag to false
                     flag1 = False
-                    print("Packet received")
+                    timeout_flag = False
+                    print("Response received")
 
-            #response, serverAddress = clientSocket.recvfrom(2048) #receive ACK from server
             response = response.decode()
             print("Response: " + response)
 
@@ -82,6 +94,8 @@ def go():
                 flag = False
             elif response[1:4] == "101": #if the ACK is corrupted, send the packet again
                 print("Sending again because of corrupted ACK")
+            elif timeout_flag: #if packet/ACK was dropped, send the packet again
+                print("Sending again because of dropped packet/ACK")
             else: #if the packet was corrupted, send the packet again
                 print("Sending again because of corrupted packet")
 

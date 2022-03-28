@@ -1,8 +1,4 @@
 import math
-import struct
-import time
-# define packet concat array for server
-import sys
 
 raw_file_data = bytearray()
 

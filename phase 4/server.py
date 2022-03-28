@@ -1,7 +1,6 @@
 from socket import * #import python socket library
 import file_extract
 import random
-import time
 
 clientName = "localhost"
 serverPort = 4444
@@ -48,4 +47,5 @@ while True:
 
     response = id + ACK #ACK contains the ID number of the packet sent and 111
 
-    serverSocket.sendto(response.encode(), clientAddress) #Send the ACK back to the client
+    if random.randint(0, 100) > 5:  # Drop 5% of the ACKs
+        serverSocket.sendto(response.encode(), clientAddress) #Send the ACK back to the client
