@@ -17,8 +17,8 @@ def receive(clientSocket):
 def go():
     BMP_fname = file.get()              #get file name from user input
     packet_size_bytes = 1024            #fixed packet size
-    percent_corruption = 25             #percent of packets that will be corrupted
-    percent_drop = 10                   #percent of packets that will be dropped
+    percent_corruption = 0             #percent of packets that will be corrupted
+    percent_drop = 35                   #percent of packets that will be dropped
     timeout = 0.05                      #timeout in seconds
 
     loop_cond = file_extract.number_of_packets((BMP_fname + '.bmp'), packet_size_bytes)  # determine loop conditions before sending packets
@@ -81,23 +81,23 @@ def go():
                 if timeout < (time.time() - t1): #if we timeout, exit the loop and set the timeout flag to true
                     flag1 = False
                     timeout_flag = True
-                    print("Timeout")
+                    #print("Timeout")
                 if response != "timeout".encode(): #if we receive a response, exit the loop and set the timeout flag to false
                     flag1 = False
                     timeout_flag = False
-                    print("Response received")
+                    #print("Response received")
 
             response = response.decode()
-            print("Response: " + response)
+            #print("Response: " + response)
 
             if response[0] == id and response[1:4] == "111": #if neither of the two scenarios below occur, exit the loop. We don't need to send the packet again
                 flag = False
-            elif response[1:4] == "101": #if the ACK is corrupted, send the packet again
-                print("Sending again because of corrupted ACK")
-            elif timeout_flag: #if packet/ACK was dropped, send the packet again
-                print("Sending again because of dropped packet/ACK")
-            else: #if the packet was corrupted, send the packet again
-                print("Sending again because of corrupted packet")
+            #elif response[1:4] == "101": #if the ACK is corrupted, send the packet again
+                #print("Sending again because of corrupted ACK")
+            #elif timeout_flag: #if packet/ACK was dropped, send the packet again
+                #print("Sending again because of dropped packet/ACK")
+            #else: #if the packet was corrupted, send the packet again
+                #print("Sending again because of corrupted packet")
 
         if id == "0": #Toggle the sequence number for every packet
             id = "1"
