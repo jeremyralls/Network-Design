@@ -28,7 +28,7 @@ def client_packet_split(packet_size_bytes, fname, i):
         bmp.close()
         packet_buf = data[(packet_size_bytes * i):(packet_size_bytes * (i + 1)) ]
 
-        print("Good: " + str(packet_buf))
+        #print("Good: " + str(packet_buf))
 
         return packet_buf
 
@@ -41,7 +41,7 @@ def client_packet_corruptor(packet_buf):
             packet_buf[i] = packet_buf[i] - 1
 
 
-    print("Corrupt: " + str(packet_buf))
+    #print("Corrupt: " + str(packet_buf))
 
     return packet_buf
 
