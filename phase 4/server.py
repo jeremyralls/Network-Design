@@ -2,21 +2,24 @@ from socket import * #import python socket library
 import file_extract
 import random
 
+percent_drop = 0 #Drop this percentage of ACKs
+percent_corruption = 0 #Corrupt this percentage of ACKs
+
 clientName = "localhost"
 serverPort = 4444
 serverSocket = socket(AF_INET, SOCK_DGRAM) #creates server socket
 serverSocket.bind(("", serverPort)) #binds socket to server port
-print("Ready to receive file from client")
+#print("Ready to receive file from client")
 
 #receive filename from client
 filename, clientAddress = serverSocket.recvfrom(2048)
 filename = filename.decode()
-print(filename)
+#print(filename)
 
 #receive packet size in bytes from client
 packet_size_string, clientAddress = serverSocket.recvfrom(2048)
 packet_size = int(packet_size_string.decode())
-print("Packet size: " + str(packet_size) + " bytes")
+#print("Packet size: " + str(packet_size) + " bytes")
 
 last_good_packet = '1'
 
@@ -25,13 +28,13 @@ while True:
     id, clientAddress = serverSocket.recvfrom(2048) #receive packet ID from client
     id = id.decode()
     ACK = "111" #111 signifies good ACK
-    print("ID " + str(i + 1) + ": " + id)
+    #print("ID " + str(i + 1) + ": " + id)
 
     checksum, clientAddress = serverSocket.recvfrom(2048) #receive checksum from client
-    print("Checksum " + str(i + 1) + ": " + checksum.decode())
+    #print("Checksum " + str(i + 1) + ": " + checksum.decode())
 
     packet, clientAddress = serverSocket.recvfrom(2048) #receive packet from client
-    print("Packet " + str(i + 1) + ": " + str(packet))
+    #print("Packet " + str(i + 1) + ": " + str(packet))
 
     checksum_calc = file_extract.chksum(packet)
     checksum_calc = str(checksum_calc)
@@ -42,10 +45,10 @@ while True:
         last_good_packet = id #Record this packet as the last good packet
         i += 1
 
-    if random.randint(0, 100) < 10:  # Corrupt 10% of the ACKs
+    if random.randint(0, 100) < percent_corruption:  # Corrupt percent_corruption of the ACKs
         ACK = "101"
 
     response = id + ACK #ACK contains the ID number of the packet sent and 111
 
-    if random.randint(0, 100) > 5:  # Drop 5% of the ACKs
+    if random.randint(0, 100) > percent_drop:  # Drop percent_drop of the ACKs
         serverSocket.sendto(response.encode(), clientAddress) #Send the ACK back to the client
